@@ -1,0 +1,35 @@
+---
+- name: Instalação do pacote whois ubuntu
+  apt: { name: whois, state: present, update_cache: yes }
+
+- name: Gearando senha criptografada
+  shell: "mkpasswd --method=SHA-512 {{ senha }}"
+  register: cripto_pwd
+  changed_when: false
+  no_log: true
+
+- name: Criação do usuario {{ nome }}
+  user:
+    name: "{{ nome }}"
+    password: "{{ cripto_pwd.stdout }}"
+    shell: /bin/bash
+    groups: sudo
+    append: true
+    create_home: true
+
+- name: Criar diretorio ssh
+  file: { path: "/home/{{ nome }}/.ssh", state: directory, owner: "{{ nome }}", group: "{{ nome }}", mode: "0700" }
+
+- name: Verificar se authorized_keys do ubuntu existe
+  stat: { path: /home/ubuntu/.ssh/authorized_keys }
+  register: ubuntu_auth
+
+- name: Adicionando chave públia em authorized_keys
+  copy:
+    src: /home/ubuntu/.ssh/authorized_keys
+    dest: "/home/{{ nome }}/.ssh/authorized_keys"
+    owner: "{{ nome }}"
+    group: "{{ nome }}"
+    mode: "0600"
+    remote_src: true
+  when: ubuntu_auth.stat.exists

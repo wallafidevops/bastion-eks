@@ -1,0 +1,35 @@
+---
+- name: Instalação do pacote whois ami
+  yum: { name: whois, state: present, update_cache: yes }
+
+- name: Gearando senha criptografada (OpenSSL)
+  command: "openssl passwd -6 {{ senha }}"
+  register: cripto_pwd
+  changed_when: false
+  no_log: true
+
+- name: Criação do usuario {{ nome }}
+  user:
+    name: "{{ nome }}"
+    password: "{{ cripto_pwd.stdout }}"
+    shell: /bin/bash
+    groups: wheel
+    append: true
+    create_home: true
+
+- name: Criar diretorio ssh
+  file: { path: "/home/{{ nome }}/.ssh", state: directory, owner: "{{ nome }}", group: "{{ nome }}", mode: "0700" }
+
+- name: Verificar se authorized_keys do ec2-user existe
+  stat: { path: /home/ec2-user/.ssh/authorized_keys }
+  register: ec2_auth
+
+- name: Adicionando chave públia em authorized_keys ami
+  copy:
+    src: /home/ec2-user/.ssh/authorized_keys
+    dest: "/home/{{ nome }}/.ssh/authorized_keys"
+    owner: "{{ nome }}"
+    group: "{{ nome }}"
+    mode: "0600"
+    remote_src: true
+  when: ec2_auth.stat.exists

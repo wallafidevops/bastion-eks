@@ -1,0 +1,66 @@
+---
+# Amazon Linux (AMI) — instala AWS CLI v2, kubectl, eksctl e Helm
+
+# Dependências básicas
+- name: Pacotes base (curl, unzip, tar)
+  ansible.builtin.package:
+    name:
+      - unzip
+      - tar
+      - gzip
+      - ca-certificates
+    state: present
+
+# Mapear arquitetura (x86_64 → amd64 / aarch64 → arm64)
+- name: Definir arquitetura
+  ansible.builtin.set_fact:
+    aws_arch: "{{ 'x86_64' if ansible_architecture == 'x86_64' else 'aarch64' }}"
+    go_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+
+
+# -------------------------
+# kubectl (última estável)
+# -------------------------
+- name: Descobrir versão estável do kubectl
+  ansible.builtin.uri:
+    url: https://dl.k8s.io/release/stable.txt
+    return_content: true
+  register: kubectl_stable
+  changed_when: false
+
+- name: Instalar kubectl
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/{{ kubectl_stable.content | trim }}/bin/linux/{{ go_arch }}/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: "0755"
+
+# -------------------------
+# eksctl (última release)
+# -------------------------
+- name: Baixar eksctl
+  ansible.builtin.get_url:
+    url: "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_{{ go_arch }}.tar.gz"
+    dest: /tmp/eksctl.tar.gz
+    mode: "0644"
+
+- name: Instalar eksctl
+  ansible.builtin.unarchive:
+    src: /tmp/eksctl.tar.gz
+    dest: /usr/local/bin
+    remote_src: true
+  args:
+    creates: /usr/local/bin/eksctl
+
+# -------------------------
+# Helm (script oficial)
+# -------------------------
+- name: Baixar script oficial do Helm
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    dest: /tmp/get-helm-3
+    mode: "0755"
+
+- name: Instalar Helm 3
+  ansible.builtin.command: /tmp/get-helm-3
+  args:
+    creates: /usr/local/bin/helm

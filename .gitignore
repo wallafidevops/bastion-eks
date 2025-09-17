@@ -1,0 +1,5 @@
+ansible/ansible_2.pem
+
+terraform/.terraform
+
+terraform/.terraform.lock.hcl

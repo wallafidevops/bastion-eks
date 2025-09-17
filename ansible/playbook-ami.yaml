@@ -1,0 +1,20 @@
+---
+- name: Criação usuario {{ nome }} (AMI Linux)
+  hosts: ami
+  become: true
+  remote_user: ec2-user
+  gather_facts: true
+  vars_files:
+    - vars.yaml
+  roles:
+    - create_user
+
+- name: Instalação dos compoenentes Eks  (AMI Linux)
+  hosts: ami
+  become: true
+  remote_user: "{{ nome }}"
+  gather_facts: true
+  vars_files:
+    - vars.yaml
+  roles:
+    - kubernetes

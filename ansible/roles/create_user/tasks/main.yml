@@ -1,0 +1,11 @@
+
+---
+# Ubuntu/Debian
+- import_tasks: ubuntu.yml
+  when: ansible_os_family == "Debian" or ansible_distribution == "Ubuntu"
+
+# Amazon Linux (AL2/AL2023)
+- import_tasks: ami.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - "'amazon' in (ansible_distribution | lower)"
